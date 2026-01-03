@@ -1,7 +1,8 @@
 import pygame as pg
 import sys
 from scripts.entities import PhysicsEntity
-
+from scripts.utils import load_image, load_images
+from scripts.tilemap import Tilemap
 
 #Constants
 width = 640
@@ -15,32 +16,31 @@ class Game:
         pg.init()
 
         pg.display.set_caption("Basic Platformer")
-        self.image.set_colorkey((0,0,0))
-
-        self.image_pos = [160, 260]
-        self.movement = [False, False]
-
         self.screen = pg.display.set_mode((width, height))
-
         self.clock = pg.time.Clock()
+        self.display = pg.Surface((320, 240))
 
-        self.collision_area = pg.Rect(50, 50, 300, 50)
-
+        self.movement = [False, False]
         self.player = PhysicsEntity(self, 'player', (50, 50), (8, 15))
 
+        self.assets = {
+            'decor': load_images('tiles/decor'),
+            'grass': load_images('tiles/grass'),
+            'large_decor': load_images('tiles/large_decor'),
+            'stone': load_images('tiles/stone'),
+            'player': load_image('entities/player.png')
+        }
+
+        self.tilemap = Tilemap(self, tiles_size=16)
     def run(self):
         #Game Loop
         while True:
-            self.screen.fill((14,219,248))
+            self.display.fill((14,219,248))
 
-            image_r = pg.Rect(self.image_pos[0], self.image_pos[1], self.image.get_width(), self.image.get_height())
-            if image_r.colliderect(self.collision_area):
-                pg.draw.rect(self.screen, (0, 100, 255), self.collision_area)
-            else:
-                pg.draw.rect(self.screen, (0, 50, 155), self.collision_area)
+            self.tilemap.render(self.display)
 
-            self.image_pos[1] += (self.movement[1] - self.movement[0]) * 5
-            self.screen.blit(self.image, self.image_pos)
+            self.player.update(self.tilemap, (self.movement[1] - self.movement[0], 0))
+            self.player.render(self.display)
 
             for event in pg.event.get():
                 if event.type == pg.QUIT:
@@ -48,17 +48,20 @@ class Game:
                     sys.exit()
 
                 if event.type == pg.KEYDOWN:
-                    if event.key == pg.K_w:
+                    if event.key == pg.K_a:
                         self.movement[0] = True
-                    if event.key == pg.K_s:
+                    if event.key == pg.K_d:
                         self.movement[1] = True
+                    if event.key == pg.K_SPACE:
+                        self.player.velocity[1] = -3
 
                 if event.type == pg.KEYUP:
-                    if event.key == pg.K_w:
+                    if event.key == pg.K_a:
                         self.movement[0] = False
-                    if event.key == pg.K_s:
+                    if event.key == pg.K_d:
                         self.movement[1] = False
 
+            self.screen.blit(pg.transform.scale(self.display, self.screen.get_size()), (0,0))
             self.clock.tick(fps)
             pg.display.update()
 
